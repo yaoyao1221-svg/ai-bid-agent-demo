@@ -6,6 +6,7 @@ import {
   extractTenderRequirements,
   generateProposalDraft,
   getTenderFileSupport,
+  normalizeEnterpriseProfile,
   reviewProposalDraft
 } from '../src/bidEngine.js';
 
@@ -129,4 +130,37 @@ test('getTenderFileSupport accepts text-like tender files and rejects unsupporte
     supported: false,
     reason: '当前 demo 不直接解析 Word，需要后续接入文档解析服务。'
   });
+});
+
+test('normalizeEnterpriseProfile converts manual enterprise fields into ontology-like data', () => {
+  const result = normalizeEnterpriseProfile({
+    name: '重庆测试科技有限公司',
+    slogan: '本地信息化服务商',
+    qualificationsText: 'ISO9001质量管理体系认证|认证|2028-12-31\n信息技术服务标准符合性证书|三级|2027-06-30',
+    casesText: '重庆智慧园区运维平台项目|信息化|5800000|2024|系统集成,平台运维,本地服务',
+    capabilitiesText: '系统集成,数据治理,平台运维,本地化售后',
+    localOffice: true,
+    responseHours: '4'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.enterprise.name, '重庆测试科技有限公司');
+  assert.equal(result.enterprise.qualifications.length, 2);
+  assert.equal(result.enterprise.cases[0].amount, 5800000);
+  assert.equal(result.enterprise.service.responseHours, 4);
+});
+
+test('normalizeEnterpriseProfile rejects missing enterprise name and empty qualifications', () => {
+  const result = normalizeEnterpriseProfile({
+    name: '',
+    qualificationsText: '',
+    casesText: '',
+    capabilitiesText: '',
+    localOffice: false,
+    responseHours: ''
+  });
+
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes('请填写企业名称。'));
+  assert.ok(result.errors.includes('请至少填写一项企业资质。'));
 });

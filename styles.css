@@ -100,6 +100,54 @@ h3 {
   padding: 22px;
 }
 
+.card-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.compact {
+  min-width: 78px;
+  height: 34px;
+  font-size: 13px;
+}
+
+.enterprise-upload,
+.enterprise-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.enterprise-form input[type="text"],
+.enterprise-form input[type="number"] {
+  width: 100%;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #fff;
+  color: var(--ink);
+  font: 13px/1.5 "Avenir Next", "PingFang SC", sans-serif;
+}
+
+.small-textarea {
+  min-height: 82px;
+  font-size: 13px;
+}
+
+.service-row {
+  display: grid;
+  grid-template-columns: 1fr 74px 72px;
+  align-items: center;
+  gap: 8px;
+}
+
+.service-row label {
+  font-size: 13px;
+}
+
 .fact-list {
   display: grid;
   gap: 10px;

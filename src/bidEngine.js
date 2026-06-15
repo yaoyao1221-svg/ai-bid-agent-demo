@@ -58,6 +58,39 @@ export function getTenderFileSupport(fileName) {
   };
 }
 
+export function normalizeEnterpriseProfile(input) {
+  const errors = [];
+  const name = String(input.name ?? '').trim();
+  const slogan = String(input.slogan ?? '').trim();
+  const qualifications = parseQualifications(input.qualificationsText ?? '');
+  const cases = parseCases(input.casesText ?? '');
+  const capabilities = splitList(input.capabilitiesText ?? '');
+  const responseHours = Number(input.responseHours);
+
+  if (!name) errors.push('请填写企业名称。');
+  if (qualifications.length === 0) errors.push('请至少填写一项企业资质。');
+  if (!Number.isFinite(responseHours) || responseHours <= 0) errors.push('请填写有效的售后响应小时数。');
+
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+
+  return {
+    ok: true,
+    enterprise: {
+      name,
+      slogan,
+      qualifications,
+      cases,
+      capabilities,
+      service: {
+        localOffice: Boolean(input.localOffice),
+        responseHours
+      }
+    }
+  };
+}
+
 export function extractTenderRequirements(tenderText) {
   const normalized = tenderText.replace(/\r/g, '').trim();
   const lines = normalized
@@ -84,6 +117,43 @@ export function extractTenderRequirements(tenderText) {
   }
 
   return requirements;
+}
+
+function parseQualifications(text) {
+  return String(text)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name = '', level = '未填写', validTo = '2099-12-31'] = line.split('|').map((part) => part.trim());
+      return { name, level, validTo };
+    })
+    .filter((item) => item.name);
+}
+
+function parseCases(text) {
+  return String(text)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name = '', industry = '未填写', amount = '0', year = '0', tags = ''] = line.split('|').map((part) => part.trim());
+      return {
+        name,
+        industry,
+        amount: Number(amount),
+        year: Number(year),
+        tags: splitList(tags)
+      };
+    })
+    .filter((item) => item.name);
+}
+
+function splitList(text) {
+  return String(text)
+    .split(/[,，、]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 export function analyzeBidProject({ enterprise, tenderText }) {

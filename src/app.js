@@ -2,6 +2,7 @@ import {
   analyzeBidProject,
   generateProposalDraft,
   getTenderFileSupport,
+  normalizeEnterpriseProfile,
   reviewProposalDraft
 } from './bidEngine.js';
 import { sampleEnterprise, sampleTenderText } from './sampleData.js';
@@ -10,6 +11,16 @@ const elements = {
   enterpriseName: document.querySelector('#enterpriseName'),
   enterpriseSlogan: document.querySelector('#enterpriseSlogan'),
   enterpriseFacts: document.querySelector('#enterpriseFacts'),
+  enterpriseFile: document.querySelector('#enterpriseFile'),
+  enterpriseStatus: document.querySelector('#enterpriseStatus'),
+  loadEnterpriseSample: document.querySelector('#loadEnterpriseSample'),
+  enterpriseNameInput: document.querySelector('#enterpriseNameInput'),
+  enterpriseSloganInput: document.querySelector('#enterpriseSloganInput'),
+  qualificationsInput: document.querySelector('#qualificationsInput'),
+  casesInput: document.querySelector('#casesInput'),
+  capabilitiesInput: document.querySelector('#capabilitiesInput'),
+  localOfficeInput: document.querySelector('#localOfficeInput'),
+  responseHoursInput: document.querySelector('#responseHoursInput'),
   tenderFile: document.querySelector('#tenderFile'),
   tenderInput: document.querySelector('#tenderInput'),
   runAnalysis: document.querySelector('#runAnalysis'),
@@ -28,7 +39,15 @@ const elements = {
 };
 
 function init() {
+  fillEnterpriseForm(sampleEnterprise);
   renderEnterprise(sampleEnterprise);
+  elements.enterpriseFile.addEventListener('change', handleEnterpriseFileUpload);
+  elements.loadEnterpriseSample.addEventListener('click', () => {
+    elements.enterpriseFile.value = '';
+    fillEnterpriseForm(sampleEnterprise);
+    setEnterpriseStatus('已加载企业样例。', true);
+    renderEnterprise(sampleEnterprise);
+  });
   setTenderContent(sampleTenderText, '已加载内置样例招标文件，可点击“开始解析”。', true);
   elements.tenderFile.addEventListener('change', handleTenderFileUpload);
   elements.loadSample.addEventListener('click', () => {
@@ -46,7 +65,17 @@ function runAnalysis() {
     return;
   }
 
-  const analysis = analyzeBidProject({ enterprise: sampleEnterprise, tenderText });
+  const normalized = readEnterpriseFromForm();
+  if (!normalized.ok) {
+    setEnterpriseStatus(normalized.errors.join(' '), false);
+    return;
+  }
+
+  const enterprise = normalized.enterprise;
+  renderEnterprise(enterprise);
+  setEnterpriseStatus('企业资料已用于本次解析。', true);
+
+  const analysis = analyzeBidProject({ enterprise, tenderText });
   const draft = generateProposalDraft(analysis);
   const review = reviewProposalDraft({ analysis, draft });
 
@@ -56,6 +85,31 @@ function runAnalysis() {
   renderDraft(draft);
   renderReview(review);
   renderReasoning(analysis.reasoningNodes);
+}
+
+async function handleEnterpriseFileUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (!file.name.toLowerCase().endsWith('.json')) {
+    setEnterpriseStatus('当前 demo 仅支持上传 JSON 格式企业资料。', false);
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(await file.text());
+    const enterprise = parsed.enterprise ?? parsed;
+    fillEnterpriseForm(enterprise);
+    const normalized = readEnterpriseFromForm();
+    if (!normalized.ok) {
+      setEnterpriseStatus(normalized.errors.join(' '), false);
+      return;
+    }
+    renderEnterprise(normalized.enterprise);
+    setEnterpriseStatus(`${file.name}：企业资料已读取，请点击“开始解析”。`, true);
+  } catch {
+    setEnterpriseStatus(`${file.name}：JSON 解析失败，请检查文件格式。`, false);
+  }
 }
 
 async function handleTenderFileUpload(event) {
@@ -87,6 +141,38 @@ function setFileStatus(message, isReady) {
   elements.fileStatus.textContent = message;
   elements.fileStatus.classList.toggle('ready', isReady);
   elements.fileStatus.classList.toggle('blocked', !isReady);
+}
+
+function setEnterpriseStatus(message, isReady) {
+  elements.enterpriseStatus.textContent = message;
+  elements.enterpriseStatus.classList.toggle('ready', isReady);
+  elements.enterpriseStatus.classList.toggle('blocked', !isReady);
+}
+
+function readEnterpriseFromForm() {
+  return normalizeEnterpriseProfile({
+    name: elements.enterpriseNameInput.value,
+    slogan: elements.enterpriseSloganInput.value,
+    qualificationsText: elements.qualificationsInput.value,
+    casesText: elements.casesInput.value,
+    capabilitiesText: elements.capabilitiesInput.value,
+    localOffice: elements.localOfficeInput.checked,
+    responseHours: elements.responseHoursInput.value
+  });
+}
+
+function fillEnterpriseForm(enterprise) {
+  elements.enterpriseNameInput.value = enterprise.name ?? '';
+  elements.enterpriseSloganInput.value = enterprise.slogan ?? '';
+  elements.qualificationsInput.value = (enterprise.qualifications ?? [])
+    .map((item) => `${item.name}|${item.level}|${item.validTo}`)
+    .join('\n');
+  elements.casesInput.value = (enterprise.cases ?? [])
+    .map((item) => `${item.name}|${item.industry}|${item.amount}|${item.year}|${(item.tags ?? []).join(',')}`)
+    .join('\n');
+  elements.capabilitiesInput.value = (enterprise.capabilities ?? []).join(',');
+  elements.localOfficeInput.checked = Boolean(enterprise.service?.localOffice);
+  elements.responseHoursInput.value = enterprise.service?.responseHours ?? '';
 }
 
 function renderEnterprise(enterprise) {

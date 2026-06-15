@@ -16,9 +16,41 @@
         </div>
 
         <section class="enterprise-card">
-          <p class="section-label">企业本体样例</p>
-          <h2 id="enterpriseName"></h2>
+          <div class="card-heading">
+            <div>
+              <p class="section-label">企业本体输入</p>
+              <h2 id="enterpriseName"></h2>
+            </div>
+            <button id="loadEnterpriseSample" class="secondary compact" type="button">加载样例</button>
+          </div>
           <p id="enterpriseSlogan"></p>
+          <div class="enterprise-upload">
+            <label for="enterpriseFile">上传企业资料 JSON</label>
+            <input id="enterpriseFile" type="file" accept=".json" />
+            <div id="enterpriseStatus" class="file-status">可手动填写，也可上传 JSON。</div>
+          </div>
+          <div class="enterprise-form">
+            <label for="enterpriseNameInput">企业名称</label>
+            <input id="enterpriseNameInput" type="text" />
+            <label for="enterpriseSloganInput">企业简介</label>
+            <input id="enterpriseSloganInput" type="text" />
+            <label for="qualificationsInput">企业资质</label>
+            <textarea id="qualificationsInput" class="small-textarea" spellcheck="false"></textarea>
+            <p class="hint">格式：资质名称|等级|有效期；一行一条。</p>
+            <label for="casesInput">企业案例</label>
+            <textarea id="casesInput" class="small-textarea" spellcheck="false"></textarea>
+            <p class="hint">格式：项目名|行业|金额|年份|标签1,标签2。</p>
+            <label for="capabilitiesInput">技术能力</label>
+            <input id="capabilitiesInput" type="text" />
+            <div class="service-row">
+              <label>
+                <input id="localOfficeInput" type="checkbox" />
+                本地化服务能力
+              </label>
+              <label for="responseHoursInput">响应小时</label>
+              <input id="responseHoursInput" type="number" min="1" step="1" />
+            </div>
+          </div>
           <div id="enterpriseFacts" class="fact-list"></div>
         </section>
       </aside>
