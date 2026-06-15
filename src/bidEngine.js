@@ -1,0 +1,370 @@
+const TODAY = '2026-06-15';
+
+const requirementPatterns = [
+  {
+    type: 'qualification',
+    keywords: ['ISO9001', '认证', '资质证书'],
+    title: '有效资质证书要求'
+  },
+  {
+    type: 'case',
+    keywords: ['类似', '业绩', '合同金额'],
+    title: '类似项目业绩要求'
+  },
+  {
+    type: 'service',
+    keywords: ['本地化服务', '售后', '响应时间'],
+    title: '本地化售后服务要求'
+  },
+  {
+    type: 'technical',
+    keywords: ['技术方案', '实施方案', '质量保障', '售后服务方案'],
+    title: '技术方案章节要求'
+  },
+  {
+    type: 'risk',
+    keywords: ['废标', '无效投标', '实质性条款'],
+    title: '废标风险条款'
+  }
+];
+
+export function getTenderFileSupport(fileName) {
+  const lowerName = fileName.toLowerCase();
+
+  if (lowerName.endsWith('.txt') || lowerName.endsWith('.md') || lowerName.endsWith('.json')) {
+    return {
+      supported: true,
+      reason: '支持文本类招标文件，可直接读取并解析。'
+    };
+  }
+
+  if (lowerName.endsWith('.pdf')) {
+    return {
+      supported: false,
+      reason: '当前 demo 不直接解析 PDF，需要后续接入 OCR/文档解析服务。'
+    };
+  }
+
+  if (lowerName.endsWith('.doc') || lowerName.endsWith('.docx')) {
+    return {
+      supported: false,
+      reason: '当前 demo 不直接解析 Word，需要后续接入文档解析服务。'
+    };
+  }
+
+  return {
+    supported: false,
+    reason: '当前 demo 仅支持 .txt、.md、.json 文本类招标文件。'
+  };
+}
+
+export function extractTenderRequirements(tenderText) {
+  const normalized = tenderText.replace(/\r/g, '').trim();
+  const lines = normalized
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const requirements = [];
+  for (const pattern of requirementPatterns) {
+    const line = lines.find((candidate) =>
+      pattern.keywords.some((keyword) => candidate.includes(keyword))
+    );
+
+    if (line) {
+      requirements.push({
+        id: `req-${requirements.length + 1}`,
+        type: pattern.type,
+        title: pattern.title,
+        content: line.replace(/^\d+[.、]\s*/, ''),
+        source: `招标文件片段：${line}`,
+        mandatory: pattern.type !== 'technical'
+      });
+    }
+  }
+
+  return requirements;
+}
+
+export function analyzeBidProject({ enterprise, tenderText }) {
+  const requirements = extractTenderRequirements(tenderText);
+  const reasoningNodes = [];
+
+  reasoningNodes.push(createNode({
+    id: 'node-parse',
+    name: '解析招标文件要求',
+    type: 'rule_parser',
+    input: { tenderTextLength: tenderText.length },
+    output: { requirementCount: requirements.length },
+    confidence: 0.82
+  }));
+
+  const matches = requirements.map((requirement, index) => {
+    const match = matchRequirement(enterprise, requirement);
+    reasoningNodes.push(createNode({
+      id: `node-match-${index + 1}`,
+      name: `匹配：${requirement.title}`,
+      type: match.logicType,
+      input: { requirement: requirement.content },
+      output: {
+        status: match.status,
+        score: match.score,
+        reason: match.reason
+      },
+      confidence: match.confidence,
+      evidence: match.evidence
+    }));
+    return { requirement, ...match };
+  });
+
+  const fit = calculateFit(matches);
+  reasoningNodes.push(createNode({
+    id: 'node-fit-score',
+    name: '计算投标适配度',
+    type: 'weighted_score',
+    input: {
+      qualification: getScore(matches, 'qualification'),
+      case: getScore(matches, 'case'),
+      service: getScore(matches, 'service'),
+      technical: getScore(matches, 'technical'),
+      risk: getScore(matches, 'risk')
+    },
+    output: fit,
+    confidence: 0.84
+  }));
+
+  const risks = buildRisks(matches);
+
+  return {
+    enterprise,
+    tenderText,
+    requirements,
+    matches,
+    fit,
+    risks,
+    reasoningNodes
+  };
+}
+
+export function generateProposalDraft(analysis) {
+  const qualificationMatch = findMatch(analysis.matches, 'qualification');
+  const caseMatch = findMatch(analysis.matches, 'case');
+  const serviceMatch = findMatch(analysis.matches, 'service');
+
+  const firstQualification = analysis.enterprise.qualifications[0];
+  const firstCase = analysis.enterprise.cases[0];
+
+  return {
+    title: `${analysis.enterprise.name}投标文件草稿`,
+    sections: {
+      companyProfile: `${analysis.enterprise.name}具备信息化项目实施、系统集成与平台运维服务能力。本草稿仅引用企业本体中的已登记事实，需由投标负责人最终确认。`,
+      qualificationResponse: firstQualification
+        ? `我公司具备${firstQualification.name}，证书等级/类型为${firstQualification.level}，有效期至${firstQualification.validTo}。该内容用于响应：${qualificationMatch?.requirement.content ?? '资质要求'}。`
+        : '需人工补充：企业本体中未登记可用于响应的资质证书。',
+      caseResponse: firstCase
+        ? `我公司已完成${firstCase.name}，项目金额${formatMoney(firstCase.amount)}，实施年份${firstCase.year}，项目标签包括${firstCase.tags.join('、')}。${caseMatch?.status === '部分满足' ? '需人工补充：招标文件要求不少于2个类似项目，目前企业本体仅找到1个强匹配案例。' : ''}`
+        : '需人工补充：企业本体中未登记类似项目案例。',
+      technicalPlan: `针对本项目，建议技术方案围绕项目理解、系统集成、数据治理、平台运维、质量保障展开，并逐条对应招标文件中的技术方案评分点。`,
+      implementationPlan: `实施方案建议分为启动调研、方案深化、系统配置、联调测试、试运行、验收交付六个阶段，并在每个阶段明确责任人、交付物和风险控制措施。`,
+      afterSalesPlan: serviceMatch?.status === '满足'
+        ? `我公司具备本地化售后服务能力，可承诺${analysis.enterprise.service.responseHours}小时内响应，并配置专人负责问题受理、跟踪和闭环。`
+        : '需人工补充：本地化售后服务证明或响应时效承诺。'
+    }
+  };
+}
+
+export function reviewProposalDraft({ analysis, draft }) {
+  const findings = [];
+  const qualificationMatch = findMatch(analysis.matches, 'qualification');
+  const caseMatch = findMatch(analysis.matches, 'case');
+
+  if (qualificationMatch?.status === '不满足') {
+    findings.push({
+      type: 'mandatory_gap',
+      level: 'high',
+      location: '资质响应',
+      message: '硬性资质要求未满足，当前不应进入投标文件定稿。',
+      suggestion: '补充有效资质证书，或确认该项目不适合参与。'
+    });
+  }
+
+  if (caseMatch?.status !== '满足') {
+    findings.push({
+      type: 'missing_evidence',
+      level: 'medium',
+      location: '类似案例响应',
+      message: '类似业绩证据不足，可能影响商务得分。',
+      suggestion: '补充第二个合同金额不低于500万元的类似信息化项目案例，或标注为需人工确认。'
+    });
+  }
+
+  if (draft.sections.technicalPlan.length < 120) {
+    findings.push({
+      type: 'low_score_risk',
+      level: 'medium',
+      location: '技术方案',
+      message: '技术方案仍为提纲式表达，针对评分点的展开不足。',
+      suggestion: '根据评分细则补充项目理解、实施路径、质量保障和售后服务的详细措施。'
+    });
+  }
+
+  const highRiskCount = findings.filter((finding) => finding.level === 'high').length;
+  const mediumRiskCount = findings.filter((finding) => finding.level === 'medium').length;
+
+  return {
+    findings,
+    summary: {
+      highRiskCount,
+      mediumRiskCount,
+      status: highRiskCount > 0 ? '需重点复核' : '可进入人工复核'
+    }
+  };
+}
+
+function matchRequirement(enterprise, requirement) {
+  if (requirement.type === 'qualification') {
+    const qualification = enterprise.qualifications.find((item) =>
+      requirement.content.includes('ISO9001') && item.name.includes('ISO9001') && item.validTo >= TODAY
+    );
+    return qualification
+      ? passMatch('满足', 100, `找到有效资质：${qualification.name}，有效期至${qualification.validTo}`, [qualification.name], 'ontology_query')
+      : passMatch('不满足', 0, '企业本体中未找到有效 ISO9001 资质。', [], 'ontology_query');
+  }
+
+  if (requirement.type === 'case') {
+    const matchingCases = enterprise.cases.filter((item) =>
+      item.year >= 2023 &&
+      item.amount >= 5000000 &&
+      (item.industry.includes('信息化') || item.tags.includes('系统集成') || item.tags.includes('平台运维'))
+    );
+
+    if (matchingCases.length >= 2) {
+      return passMatch('满足', 100, `找到${matchingCases.length}个强匹配类似案例。`, matchingCases.map((item) => item.name), 'ontology_query + semantic_match');
+    }
+
+    if (matchingCases.length === 1) {
+      return passMatch('部分满足', 60, '仅找到1个金额、时间和行业均匹配的类似案例，少于招标要求的2个。', matchingCases.map((item) => item.name), 'ontology_query + semantic_match');
+    }
+
+    return passMatch('不满足', 0, '未找到金额不低于500万元的近三年类似信息化项目案例。', [], 'ontology_query + semantic_match');
+  }
+
+  if (requirement.type === 'service') {
+    const service = enterprise.service;
+    if (service.localOffice && service.responseHours <= 4) {
+      return passMatch('满足', 100, `具备本地化服务能力，响应时间${service.responseHours}小时。`, ['本地服务能力'], 'rule_check');
+    }
+    return passMatch('部分满足', 50, '本地化服务或响应时效证明不足。', [], 'rule_check');
+  }
+
+  if (requirement.type === 'technical') {
+    const relevantCapabilities = enterprise.capabilities.filter((capability) =>
+      ['系统集成', '数据治理', '平台运维', '本地化售后'].includes(capability)
+    );
+    return passMatch(
+      relevantCapabilities.length >= 3 ? '满足' : '部分满足',
+      relevantCapabilities.length >= 3 ? 85 : 55,
+      `企业本体中找到${relevantCapabilities.length}项相关技术能力：${relevantCapabilities.join('、')}。`,
+      relevantCapabilities,
+      'capability_mapping'
+    );
+  }
+
+  if (requirement.type === 'risk') {
+    return passMatch('需人工确认', 50, '废标条款已识别，需要在标书生成后逐条检查有效资质和实质性响应。', ['废标条款'], 'risk_rule');
+  }
+
+  return passMatch('需人工确认', 40, '暂不支持该类要求自动匹配。', [], 'manual_review');
+}
+
+function passMatch(status, score, reason, evidence, logicType) {
+  return {
+    status,
+    score,
+    reason,
+    evidence,
+    logicType,
+    confidence: status === '满足' ? 0.92 : 0.78
+  };
+}
+
+function calculateFit(matches) {
+  const totalScore = Math.round(
+    getScore(matches, 'qualification') * 0.3 +
+    getScore(matches, 'case') * 0.2 +
+    getScore(matches, 'technical') * 0.2 +
+    getScore(matches, 'service') * 0.15 +
+    getScore(matches, 'risk') * 0.15
+  );
+
+  const hasMandatoryGap = matches.some((match) =>
+    match.requirement.mandatory && match.status === '不满足'
+  );
+
+  let recommendation = '不建议参与';
+  if (hasMandatoryGap) recommendation = '不建议参与';
+  else if (totalScore >= 85) recommendation = '强烈推荐参与';
+  else if (totalScore >= 75) recommendation = '推荐参与';
+  else if (totalScore >= 60) recommendation = '谨慎参与';
+
+  return {
+    totalScore,
+    recommendation,
+    hasMandatoryGap,
+    riskLevel: totalScore >= 80 ? '中' : '高',
+    dimensions: [
+      buildDimension('资格门槛匹配', getScore(matches, 'qualification'), 30),
+      buildDimension('项目案例匹配', getScore(matches, 'case'), 20),
+      buildDimension('技术能力匹配', getScore(matches, 'technical'), 20),
+      buildDimension('服务交付匹配', getScore(matches, 'service'), 15),
+      buildDimension('废标风险控制', getScore(matches, 'risk'), 15)
+    ]
+  };
+}
+
+function buildDimension(name, rawScore, weight) {
+  return {
+    name,
+    rawScore,
+    weightedScore: Math.round(rawScore * weight / 100),
+    weight
+  };
+}
+
+function buildRisks(matches) {
+  return matches
+    .filter((match) => match.status !== '满足')
+    .map((match) => ({
+      level: match.status === '不满足' ? 'high' : 'medium',
+      title: match.requirement.title,
+      description: match.reason,
+      suggestion: match.status === '部分满足'
+        ? '补充企业本体证据或在标书中标注需人工确认。'
+        : '投标前必须补齐该项，否则可能不适合参与。'
+    }));
+}
+
+function findMatch(matches, type) {
+  return matches.find((match) => match.requirement.type === type);
+}
+
+function getScore(matches, type) {
+  return findMatch(matches, type)?.score ?? 0;
+}
+
+function createNode({ id, name, type, input, output, confidence, evidence = [] }) {
+  return {
+    id,
+    name,
+    logicType: type,
+    input,
+    output,
+    confidence,
+    evidence,
+    status: confidence >= 0.8 ? 'success' : 'need_human'
+  };
+}
+
+function formatMoney(amount) {
+  return `${(amount / 10000).toFixed(0)}万元`;
+}

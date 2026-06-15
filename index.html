@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 标书精灵 Demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">Accuracy Validation Demo</p>
+          <h1>AI 标书精灵</h1>
+          <p class="intro">用于验证招标文件解析、企业适配度、标书草稿和审查校验的准确性闭环。</p>
+        </div>
+
+        <section class="enterprise-card">
+          <p class="section-label">企业本体样例</p>
+          <h2 id="enterpriseName"></h2>
+          <p id="enterpriseSlogan"></p>
+          <div id="enterpriseFacts" class="fact-list"></div>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <header class="toolbar">
+          <div>
+            <p class="section-label">准确性验证工作台</p>
+            <h2>招标文件上传、适配度评估与材料校验</h2>
+          </div>
+          <button id="runAnalysis" type="button">开始解析</button>
+        </header>
+
+        <section class="input-panel">
+          <div class="upload-row">
+            <div>
+              <label for="tenderFile">上传招标文件</label>
+              <p class="hint">当前 demo 支持 .txt、.md、.json；PDF/Word 后续接入 OCR/文档解析服务。</p>
+            </div>
+            <div class="upload-actions">
+              <input id="tenderFile" type="file" accept=".txt,.md,.json,.pdf,.doc,.docx" />
+              <button id="loadSample" class="secondary" type="button">加载样例文件</button>
+            </div>
+          </div>
+          <div id="fileStatus" class="file-status">尚未上传文件</div>
+          <label for="tenderInput">招标文件预览</label>
+          <textarea id="tenderInput" spellcheck="false" readonly placeholder="上传文本类招标文件后，这里会显示文件内容预览。"></textarea>
+        </section>
+
+        <section class="score-grid">
+          <article class="score-card">
+            <p>投标适配度</p>
+            <strong id="fitScore">--</strong>
+            <span id="fitRecommendation">等待分析</span>
+          </article>
+          <article class="score-card">
+            <p>风险等级</p>
+            <strong id="riskLevel">--</strong>
+            <span>基于硬性条款与缺口</span>
+          </article>
+          <article class="score-card">
+            <p>审查状态</p>
+            <strong id="reviewStatus">--</strong>
+            <span id="reviewCounts">等待生成</span>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <article class="panel">
+            <div class="panel-heading">
+              <h3>适配度维度</h3>
+              <p>总分由资格、案例、技术、服务、废标风险综合计算。</p>
+            </div>
+            <div id="dimensions" class="dimension-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <h3>风险与缺口</h3>
+              <p>不确定项优先进入人工确认，不直接伪装成确定结论。</p>
+            </div>
+            <div id="risks" class="risk-list"></div>
+          </article>
+
+          <article class="panel wide">
+            <div class="panel-heading">
+              <h3>标书草稿</h3>
+              <p>企业事实来自本体，缺少依据的内容会明确标注。</p>
+            </div>
+            <div id="draft" class="draft-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <h3>双模型审查报告</h3>
+              <p>模拟“生成后再审查”的质量控制链路。</p>
+            </div>
+            <div id="reviewFindings" class="finding-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <h3>白盒推理节点</h3>
+              <p>展示每一步输入、输出、依据和置信度。</p>
+            </div>
+            <div id="reasoningNodes" class="node-list"></div>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
