@@ -423,6 +423,7 @@ function getScore(matches, type) {
 }
 
 function createNode({ id, name, type, input, output, confidence, evidence = [] }) {
+  const plain = buildPlainReasoning({ name, output, confidence, evidence });
   return {
     id,
     name,
@@ -431,10 +432,50 @@ function createNode({ id, name, type, input, output, confidence, evidence = [] }
     output,
     confidence,
     evidence,
-    status: confidence >= 0.8 ? 'success' : 'need_human'
+    status: confidence >= 0.8 ? 'success' : 'need_human',
+    ...plain
   };
 }
 
 function formatMoney(amount) {
   return `${(amount / 10000).toFixed(0)}万元`;
+}
+
+function buildPlainReasoning({ name, output, confidence, evidence }) {
+  if (name === '解析招标文件要求') {
+    return {
+      summary: '系统先读取招标文件内容，识别其中的关键要求。',
+      basis: `本次从文件中识别出 ${output.requirementCount} 类关键内容。`,
+      conclusion: output.requirementCount > 0
+        ? '招标文件已进入后续匹配分析。'
+        : '未识别出有效要求，需要人工检查文件内容。',
+      nextAction: output.requirementCount > 0
+        ? '继续对企业资质、案例、服务和技术能力做匹配。'
+        : '请确认上传文件是否为可读文本，或补充 OCR/文档解析。'
+    };
+  }
+
+  if (name === '计算投标适配度') {
+    return {
+      summary: '系统把各项匹配结果汇总成投标适配度。',
+      basis: `资格、案例、技术、服务和废标风险综合计算，总分为 ${output.totalScore} 分。`,
+      conclusion: `当前结论是：${output.recommendation}，风险等级为${output.riskLevel}。`,
+      nextAction: output.hasMandatoryGap
+        ? '存在硬性缺口，建议先补齐资料或放弃本项目。'
+        : '可进入标书草稿生成和人工复核。'
+    };
+  }
+
+  const evidenceText = evidence.length > 0 ? evidence.join('、') : '未找到可直接引用的企业证据';
+  const statusText = output.status ?? '需人工确认';
+  const reasonText = output.reason ?? '暂无详细原因';
+
+  return {
+    summary: name.replace('匹配：', '系统检查：'),
+    basis: `依据：${evidenceText}。`,
+    conclusion: `判断结果：${statusText}。${reasonText}`,
+    nextAction: confidence >= 0.8 && statusText === '满足'
+      ? '该项可作为后续标书响应依据。'
+      : '该项需要人工复核或补充企业资料。'
+  };
 }

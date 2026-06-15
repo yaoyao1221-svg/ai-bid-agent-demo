@@ -64,6 +64,7 @@ test('analyzeBidProject calculates fit score and exposes risks', () => {
   assert.equal(analysis.matches[1].status, '部分满足');
   assert.match(analysis.matches[1].reason, /仅找到1个/);
   assert.ok(analysis.reasoningNodes.length >= 6);
+  assert.ok(analysis.reasoningNodes.every((node) => node.summary && node.basis && node.conclusion && node.nextAction));
   assert.ok(analysis.risks.some((risk) => risk.level === 'medium'));
 });
 

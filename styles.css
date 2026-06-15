@@ -384,14 +384,25 @@ textarea[readonly] {
   font-size: 13px;
 }
 
-.node code {
-  display: block;
-  margin-top: 8px;
-  padding: 8px;
-  overflow: auto;
-  border-radius: 6px;
-  background: #f2f0e8;
-  color: #33443c;
+.node p {
+  margin: 0 0 6px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.node span {
+  display: inline-flex;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #edf4ef;
+  color: var(--accent-dark);
+  font-weight: 800;
+}
+
+.node .next-action {
+  color: var(--ink);
+  font-weight: 700;
 }
 
 @media (max-width: 980px) {

@@ -249,9 +249,11 @@ function renderReview(review) {
 function renderReasoning(nodes) {
   elements.reasoningNodes.innerHTML = nodes.map((node) => `
     <div class="node">
-      <strong>${escapeHtml(node.name)} · ${(node.confidence * 100).toFixed(0)}%</strong>
-      <span>${escapeHtml(node.logicType)} · ${escapeHtml(node.status)}</span>
-      <code>${escapeHtml(JSON.stringify(node.output, null, 2))}</code>
+      <strong>${escapeHtml(node.summary)}</strong>
+      <p>${escapeHtml(node.basis)}</p>
+      <p>${escapeHtml(node.conclusion)}</p>
+      <p class="next-action">${escapeHtml(node.nextAction)}</p>
+      <span>可信度：${(node.confidence * 100).toFixed(0)}%</span>
     </div>
   `).join('');
 }
