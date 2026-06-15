@@ -14,11 +14,29 @@
           <h1>AI 标书精灵</h1>
           <p class="intro">用于验证招标文件解析、企业适配度、标书草稿和审查校验的准确性闭环。</p>
         </div>
+        <section class="flow-note">
+          <p class="section-label">运行逻辑</p>
+          <ol>
+            <li>先让平台读懂企业。</li>
+            <li>再让平台读懂招标项目。</li>
+            <li>最后做适配度评估与材料校验。</li>
+          </ol>
+        </section>
+      </aside>
 
-        <section class="enterprise-card">
+      <section class="workspace">
+        <header class="toolbar">
+          <div>
+            <p class="section-label">准确性验证工作台</p>
+            <h2>企业理解、项目解析、适配度评估与材料校验</h2>
+          </div>
+          <button id="runAnalysis" type="button">开始解析</button>
+        </header>
+
+        <section class="enterprise-card step-panel">
           <div class="card-heading">
             <div>
-              <p class="section-label">企业本体输入</p>
+              <p class="section-label">第一步：读懂企业</p>
               <h2 id="enterpriseName"></h2>
             </div>
             <button id="loadEnterpriseSample" class="secondary compact" type="button">加载样例</button>
@@ -53,20 +71,11 @@
           </div>
           <div id="enterpriseFacts" class="fact-list"></div>
         </section>
-      </aside>
 
-      <section class="workspace">
-        <header class="toolbar">
-          <div>
-            <p class="section-label">准确性验证工作台</p>
-            <h2>招标文件上传、适配度评估与材料校验</h2>
-          </div>
-          <button id="runAnalysis" type="button">开始解析</button>
-        </header>
-
-        <section class="input-panel">
+        <section class="input-panel step-panel">
           <div class="upload-row">
             <div>
+              <p class="section-label">第二步：读懂招标项目</p>
               <label for="tenderFile">上传招标文件</label>
               <p class="hint">当前 demo 支持 .txt、.md、.json；PDF/Word 后续接入 OCR/文档解析服务。</p>
             </div>
@@ -80,6 +89,7 @@
           <textarea id="tenderInput" spellcheck="false" readonly placeholder="上传文本类招标文件后，这里会显示文件内容预览。"></textarea>
         </section>
 
+        <p class="section-label result-label">第三步：适配度评估与材料校验</p>
         <section class="score-grid">
           <article class="score-card">
             <p>投标适配度</p>
