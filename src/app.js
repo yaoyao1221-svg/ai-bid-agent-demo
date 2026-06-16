@@ -36,7 +36,8 @@ const elements = {
   risks: document.querySelector('#risks'),
   draft: document.querySelector('#draft'),
   reviewFindings: document.querySelector('#reviewFindings'),
-  reasoningNodes: document.querySelector('#reasoningNodes')
+  reasoningNodes: document.querySelector('#reasoningNodes'),
+  enhancedAnalysis: document.querySelector('#enhancedAnalysis')
 };
 
 function init() {
