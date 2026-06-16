@@ -45,6 +45,13 @@ export function getTenderFileSupport(fileName) {
     };
   }
 
+  if (lowerName.endsWith('.doc')) {
+    return {
+      supported: true,
+      reason: '支持旧版 Word .doc 招标文件，将尝试从文件中提取可读正文。'
+    };
+  }
+
   if (lowerName.endsWith('.pdf')) {
     return {
       supported: false,
@@ -52,16 +59,9 @@ export function getTenderFileSupport(fileName) {
     };
   }
 
-  if (lowerName.endsWith('.doc')) {
-    return {
-      supported: false,
-      reason: '当前 demo 暂不解析旧版 .doc 文件，请另存为 .docx 后上传。'
-    };
-  }
-
   return {
     supported: false,
-    reason: '当前 demo 仅支持 .txt、.md、.json 文本类招标文件。'
+    reason: '当前 demo 仅支持 .txt、.md、.json、.doc、.docx 文件。'
   };
 }
 

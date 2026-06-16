@@ -126,13 +126,16 @@ async function handleTenderFileUpload(event) {
   }
 
   try {
-    const content = file.name.toLowerCase().endsWith('.docx')
+    const lowerName = file.name.toLowerCase();
+    const content = lowerName.endsWith('.docx')
       ? await extractDocxText(file)
-      : await file.text();
+      : lowerName.endsWith('.doc')
+        ? await extractLegacyDocText(file)
+        : await file.text();
 
     if (!content.trim()) {
       elements.tenderInput.value = '';
-      setFileStatus(`${file.name}：没有读取到可解析文本。如果这是扫描版 Word，需要 OCR 后再解析。`, false);
+      setFileStatus(`${file.name}：没有读取到可解析文本。如果这是扫描版 Word 或加密 Word，需要 OCR 或另存为 .docx 后再解析。`, false);
       return;
     }
 
@@ -155,6 +158,49 @@ async function extractDocxText(file) {
     .map((line) => line.trim())
     .filter(Boolean)
     .join('\n');
+}
+
+async function extractLegacyDocText(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  const candidates = [
+    decodeBytes(bytes, 'utf-16le'),
+    decodeBytes(bytes, 'gb18030'),
+    decodeBytes(bytes, 'utf-8')
+  ]
+    .map(cleanLegacyWordText)
+    .filter(Boolean)
+    .sort((a, b) => scoreTenderText(b) - scoreTenderText(a));
+
+  const best = candidates[0] ?? '';
+  return scoreTenderText(best) >= 12 ? best : '';
+}
+
+function decodeBytes(bytes, label) {
+  try {
+    return new TextDecoder(label, { fatal: false }).decode(bytes);
+  } catch {
+    return '';
+  }
+}
+
+function cleanLegacyWordText(text) {
+  const lines = String(text)
+    .replace(/\u0000/g, '\n')
+    .replace(/[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g, '\n')
+    .replace(/[^\u4e00-\u9fa5A-Za-z0-9，。；：、“”‘’（）()《》<>【】\[\]￥%+\-*/=.,;:!? \t\n]/g, '\n')
+    .split(/\n+/)
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter((line) => line.length >= 2 && /[\u4e00-\u9fa5]/.test(line));
+
+  return [...new Set(lines)].join('\n');
+}
+
+function scoreTenderText(text) {
+  const keywords = ['招标', '比选', '采购', '投标', '响应', '资格', '报价', '供应商', '项目', '文件'];
+  const keywordScore = keywords.reduce((score, keyword) => score + (String(text).includes(keyword) ? 8 : 0), 0);
+  const chineseCount = (String(text).match(/[\u4e00-\u9fa5]/g) ?? []).length;
+  return keywordScore + Math.min(40, Math.floor(chineseCount / 80));
 }
 
 function setTenderContent(content, message, isReady) {

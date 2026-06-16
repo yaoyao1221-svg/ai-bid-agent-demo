@@ -114,7 +114,7 @@ test('reviewProposalDraft marks missing mandatory facts as high risk', () => {
   assert.equal(review.summary.highRiskCount, 1);
 });
 
-test('getTenderFileSupport accepts text-like and docx tender files and rejects unsupported files in demo', () => {
+test('getTenderFileSupport accepts text-like and Word tender files and rejects unsupported files in demo', () => {
   assert.deepEqual(getTenderFileSupport('重庆运维项目招标文件.txt'), {
     supported: true,
     reason: '支持文本类招标文件，可直接读取并解析。'
@@ -130,6 +130,10 @@ test('getTenderFileSupport accepts text-like and docx tender files and rejects u
   assert.deepEqual(getTenderFileSupport('招标文件.docx'), {
     supported: true,
     reason: '支持 Word .docx 招标文件，将尝试读取文档正文文本。'
+  });
+  assert.deepEqual(getTenderFileSupport('重庆市教育矫治局办公终端采购比选文件.doc'), {
+    supported: true,
+    reason: '支持旧版 Word .doc 招标文件，将尝试从文件中提取可读正文。'
   });
 });
 
