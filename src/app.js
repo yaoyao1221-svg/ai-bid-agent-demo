@@ -336,3 +336,41 @@ function escapeHtml(value) {
 }
 
 init();
+
+function extractChineseBlocks(text) {
+  const blocks = [];
+  let current = [];
+  const chars = String(text).split('');
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    const cp = ch.charCodeAt(0);
+    const isChinese = cp >= 0x4e00 && cp <= 0x9fff;
+    const isAsciiPunct = (cp >= 0x20 && cp <= 0x7e);
+    const isCnPunct = '，。、；：？！""''（）【】《》—…·'.includes(ch);
+    const isNewline = ch === '\n' || ch === '\r';
+    if (isChinese || isAsciiPunct || isCnPunct) {
+      current.push(ch);
+    } else if (isNewline) {
+      if (current.length > 0) {
+        blocks.push(current.join('').trim());
+        current = [];
+      }
+    }
+  }
+  if (current.length > 0) {
+    blocks.push(current.join('').trim());
+  }
+  return blocks.join('\n');
+}
+
+function mergeLines(text) {
+  return String(text)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (line.length < 2) return false;
+      const asciiRatio = (line.match(/[\x00-\x7f]/g) ?? []).length / line.length;
+      return asciiRatio < 0.8;
+    })
+    .join('\n');
+}

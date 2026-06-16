@@ -108,7 +108,10 @@ function pickEnterpriseExtensions(enterprise) {
     contact: enterprise.contact,
     taxProofs: enterprise.taxProofs ?? [],
     financialStatements: enterprise.financialStatements ?? [],
-    pendingEvidence: enterprise.pendingEvidence ?? []
+    pendingEvidence: enterprise.pendingEvidence ?? [],
+    productCertifications: enterprise.productCertifications ?? [],
+    proposalTemplates: enterprise.proposalTemplates,
+    extractionWarnings: enterprise.extractionWarnings ?? []
   };
 }
 
