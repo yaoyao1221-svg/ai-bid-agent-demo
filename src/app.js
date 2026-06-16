@@ -163,17 +163,18 @@ async function extractDocxText(file) {
 async function extractLegacyDocText(file) {
   const arrayBuffer = await file.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
-  const candidates = [
-    decodeBytes(bytes, 'utf-16le'),
-    decodeBytes(bytes, 'gb18030'),
-    decodeBytes(bytes, 'utf-8')
-  ]
-    .map(cleanLegacyWordText)
-    .filter(Boolean)
-    .sort((a, b) => scoreTenderText(b) - scoreTenderText(a));
+  const fullText16 = decodeBytes(bytes, 'utf-16le');
+  const fullTextGb = decodeBytes(bytes, 'gb18030');
 
-  const best = candidates[0] ?? '';
-  return scoreTenderText(best) >= 12 ? best : '';
+  const candidate16 = extractChineseBlocks(fullText16);
+  const candidateGb = extractChineseBlocks(fullTextGb);
+
+  const best = [candidate16, candidateGb]
+    .map(mergeLines)
+    .filter((t) => scoreTenderText(t) >= 8)
+    .sort((a, b) => scoreTenderText(b) - scoreTenderText(a))[0] ?? '';
+
+  return best;
 }
 
 function decodeBytes(bytes, label) {
@@ -184,22 +185,10 @@ function decodeBytes(bytes, label) {
   }
 }
 
-function cleanLegacyWordText(text) {
-  const lines = String(text)
-    .replace(/\u0000/g, '\n')
-    .replace(/[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g, '\n')
-    .replace(/[^\u4e00-\u9fa5A-Za-z0-9，。；：、“”‘’（）()《》<>【】\[\]￥%+\-*/=.,;:!? \t\n]/g, '\n')
-    .split(/\n+/)
-    .map((line) => line.replace(/\s+/g, ' ').trim())
-    .filter((line) => line.length >= 2 && /[\u4e00-\u9fa5]/.test(line));
-
-  return [...new Set(lines)].join('\n');
-}
-
 function scoreTenderText(text) {
   const keywords = ['招标', '比选', '采购', '投标', '响应', '资格', '报价', '供应商', '项目', '文件'];
-  const keywordScore = keywords.reduce((score, keyword) => score + (String(text).includes(keyword) ? 8 : 0), 0);
-  const chineseCount = (String(text).match(/[\u4e00-\u9fa5]/g) ?? []).length;
+  const keywordScore = keywords.reduce((s, kw) => s + (text.includes(kw) ? 8 : 0), 0);
+  const chineseCount = (text.match(/[\u4e00-\u9fa5]/g) ?? []).length;
   return keywordScore + Math.min(40, Math.floor(chineseCount / 80));
 }
 
