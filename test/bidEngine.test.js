@@ -11,7 +11,7 @@ import {
 } from '../src/bidEngine.js';
 
 const enterprise = {
-  name: '重庆云桥数字科技有限公司',
+  name: '重庆科讯科技有限公司',
   qualifications: [
     { name: 'ISO9001质量管理体系认证', level: '认证', validTo: '2028-12-31' },
     { name: '信息技术服务标准符合性证书', level: '三级', validTo: '2027-06-30' }

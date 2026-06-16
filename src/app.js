@@ -5,7 +5,7 @@ import {
   normalizeEnterpriseProfile,
   reviewProposalDraft
 } from './bidEngine.js';
-import { kexunEnterprise, sampleEnterprise, sampleTenderText } from './sampleData.js';
+import { kexunEnterprise, sampleTenderText } from './sampleData.js';
 
 const elements = {
   enterpriseName: document.querySelector('#enterpriseName'),
@@ -13,7 +13,6 @@ const elements = {
   enterpriseFacts: document.querySelector('#enterpriseFacts'),
   enterpriseFile: document.querySelector('#enterpriseFile'),
   enterpriseStatus: document.querySelector('#enterpriseStatus'),
-  loadEnterpriseSample: document.querySelector('#loadEnterpriseSample'),
   loadKexunSample: document.querySelector('#loadKexunSample'),
   enterpriseNameInput: document.querySelector('#enterpriseNameInput'),
   enterpriseSloganInput: document.querySelector('#enterpriseSloganInput'),
@@ -40,19 +39,13 @@ const elements = {
 };
 
 function init() {
-  fillEnterpriseForm(sampleEnterprise);
-  renderEnterprise(sampleEnterprise);
+  fillEnterpriseForm(kexunEnterprise);
+  renderEnterprise(kexunEnterprise);
   elements.enterpriseFile.addEventListener('change', handleEnterpriseFileUpload);
-  elements.loadEnterpriseSample.addEventListener('click', () => {
-    elements.enterpriseFile.value = '';
-    fillEnterpriseForm(sampleEnterprise);
-    setEnterpriseStatus('已加载企业样例。', true);
-    renderEnterprise(sampleEnterprise);
-  });
   elements.loadKexunSample.addEventListener('click', () => {
     elements.enterpriseFile.value = '';
     fillEnterpriseForm(kexunEnterprise);
-    setEnterpriseStatus('已加载重庆科讯科技有限公司样例。', true);
+    setEnterpriseStatus('已重置为重庆科讯科技有限公司资料。', true);
     renderEnterprise(kexunEnterprise);
   });
   setTenderContent(sampleTenderText, '已加载内置样例招标文件，可点击“开始解析”。', true);
