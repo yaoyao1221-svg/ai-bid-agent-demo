@@ -254,11 +254,15 @@ export function analyzeBidProject({ enterprise, tenderText }) {
 
   const risks = buildRisks(matches);
 
+  // 增强解析：从招标文件中提取评分细则、交付要求等附加信息
+  const enhancedAnalysis = extractEnhancedInfo(tenderText);
+
   return {
     enterprise,
     tenderText,
     requirements,
     matches,
+    enhancedAnalysis,
     fit,
     risks,
     reasoningNodes
@@ -592,4 +596,66 @@ function buildPlainReasoning({ name, output, confidence, evidence }) {
       ? '该项可作为后续标书响应依据。'
       : '该项需要人工复核或补充企业资料。'
   };
+}
+
+
+// 增强解析：从招标文件中提取评分细则、交付要求等附加信息（不参与权重计算）
+function extractEnhancedInfo(tenderText) {
+  const enhancedPatterns = [
+    { id: "scoringRules", keywords: ["评分办法", "评分标准", "评标方法", "综合评分", "评审因素", "分值", "价格分", "技术分", "商务分"], title: "评分细则" },
+    { id: "delivery", keywords: ["交货时间", "交付地点", "实施周期", "工期", "交付期限", "验收标准"], title: "交付与验收要求" },
+    { id: "procurementList", keywords: ["采购清单", "采购内容", "采购需求", "供货清单", "配置清单", "数量"], title: "采购清单" },
+    { id: "bidDeadline", keywords: ["投标截止", "开标时间", "递交时间", "投标文件递交"], title: "投标时间与地点" },
+    { id: "bidDeposit", keywords: ["投标保证金", "保证金", "投标保函"], title: "投标保证金" },
+    { id: "budgetAndPricing", keywords: ["项目预算", "最高限价", "采购预算", "报价要求"], title: "预算与报价要求" }
+  ];
+
+  const normalized = tenderText.replace(/\r/g, '').trim();
+  const lines = normalized
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const info = [];
+
+  for (const pattern of enhancedPatterns) {
+    const matchedLine = lines.find((line) => pattern.keywords.some((kw) => line.includes(kw)));
+    if (!matchedLine) continue;
+
+    const lineIndex = lines.indexOf(matchedLine);
+    const ctxStart = Math.max(0, lineIndex - 1);
+    const ctxEnd = Math.min(lines.length, lineIndex + 4);
+    const contextLines = [];
+    for (let j = ctxStart; j < ctxEnd; j++) {
+      contextLines.push(j === lineIndex ? '  \u2192 ' + lines[j] : '    ' + lines[j]);
+    }
+
+    // 提取结构化详情
+    const details = {};
+    const combined = contextLines.join(' ');
+
+    if (pattern.id === 'scoringRules') {
+      const priceMatch = combined.match(/价格分.*?(\d+)\s*[分%]/);
+      const techMatch = combined.match(/技术分.*?(\d+)\s*[分%]/);
+      const businessMatch = combined.match(/商务分.*?(\d+)\s*[分%]/);
+      details.priceWeight = priceMatch ? parseInt(priceMatch[1]) : null;
+      details.techWeight = techMatch ? parseInt(techMatch[1]) : null;
+      details.businessWeight = businessMatch ? parseInt(businessMatch[1]) : null;
+    }
+
+    if (pattern.id === 'delivery') {
+      const dayMatch = combined.match(/(\d+)\s*[天日]/);
+      details.deliveryDays = dayMatch ? parseInt(dayMatch[1]) : null;
+    }
+
+    info.push({
+      id: pattern.id,
+      title: pattern.title,
+      content: matchedLine.replace(/^\d+[.、]\s*/, ''),
+      contextLines: contextLines,
+      details: details
+    });
+  }
+
+  return info;
 }

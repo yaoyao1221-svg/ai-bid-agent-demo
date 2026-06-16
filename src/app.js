@@ -86,6 +86,8 @@ function runAnalysis() {
   renderDraft(draft);
   renderReview(review);
   renderReasoning(analysis.reasoningNodes);
+  renderEnhancedAnalysis(analysis.enhancedAnalysis);
+
 }
 
 async function handleEnterpriseFileUpload(event) {
@@ -514,6 +516,35 @@ function renderReasoning(nodes) {
       <span>可信度：${(node.confidence * 100).toFixed(0)}%</span>
     </div>
   `).join('');
+}
+
+function renderEnhancedAnalysis(info) {
+  if (!info || info.length === 0) {
+    elements.enhancedAnalysis.innerHTML = '<div class="e-empty">未识别到附加信息，可能是招标文件内容较简单。</div>';
+    return;
+  }
+
+  const labels = {
+    scoringRules: '评分细则',
+    delivery: '交付与验收要求',
+    procurementList: '采购清单',
+    bidDeadline: '投标时间与地点',
+    bidDeposit: '投标保证金',
+    budgetAndPricing: '预算与报价要求'
+  };
+
+  elements.enhancedAnalysis.innerHTML = info.map((item) => {
+    const detailHtml = Object.entries(item.details || {}).filter(([, v]) => v !== null).map(([k, v]) => {
+      const detailLabels = { priceWeight: '价格分权重', techWeight: '技术分权重', businessWeight: '商务分权重', deliveryDays: '交付天数', maxResponseHours: '响应时效' };
+      return `<span class="detail-tag">\${detailLabels[k] || k}：\${v}</span>`;
+    }).join('');
+
+    return `<div class="node">
+      <strong>\${escapeHtml(labels[item.id] || item.title)}</strong>
+      <p>\${escapeHtml(item.content)}</p>
+      \${detailHtml ? `<p class="detail-line">\${detailHtml}</p>` : ''}
+    </div>`;
+  }).join('');
 }
 
 function escapeHtml(value) {
