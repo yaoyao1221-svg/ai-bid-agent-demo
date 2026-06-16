@@ -3,7 +3,7 @@ const TODAY = '2026-06-15';
 const requirementPatterns = [
   {
     type: 'qualification',
-    keywords: ['ISO9001', '认证', '资质证书'],
+    keywords: ['营业执照', 'ISO9001', '认证', '资质证书', '资格'],
     title: '有效资质证书要求'
   },
   {
@@ -38,6 +38,13 @@ export function getTenderFileSupport(fileName) {
     };
   }
 
+  if (lowerName.endsWith('.docx')) {
+    return {
+      supported: true,
+      reason: '支持 Word .docx 招标文件，将尝试读取文档正文文本。'
+    };
+  }
+
   if (lowerName.endsWith('.pdf')) {
     return {
       supported: false,
@@ -45,10 +52,10 @@ export function getTenderFileSupport(fileName) {
     };
   }
 
-  if (lowerName.endsWith('.doc') || lowerName.endsWith('.docx')) {
+  if (lowerName.endsWith('.doc')) {
     return {
       supported: false,
-      reason: '当前 demo 不直接解析 Word，需要后续接入文档解析服务。'
+      reason: '当前 demo 暂不解析旧版 .doc 文件，请另存为 .docx 后上传。'
     };
   }
 
@@ -100,9 +107,7 @@ export function extractTenderRequirements(tenderText) {
 
   const requirements = [];
   for (const pattern of requirementPatterns) {
-    const line = lines.find((candidate) =>
-      pattern.keywords.some((keyword) => candidate.includes(keyword))
-    );
+    const line = findBestRequirementLine(lines, pattern);
 
     if (line) {
       requirements.push({
@@ -117,6 +122,33 @@ export function extractTenderRequirements(tenderText) {
   }
 
   return requirements;
+}
+
+function findBestRequirementLine(lines, pattern) {
+  const candidates = lines
+    .filter((candidate) => pattern.keywords.some((keyword) => candidate.includes(keyword)))
+    .map((candidate) => ({
+      line: candidate,
+      score: scoreRequirementLine(candidate, pattern)
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  return candidates[0]?.line;
+}
+
+function scoreRequirementLine(line, pattern) {
+  let score = 0;
+  for (const keyword of pattern.keywords) {
+    if (line.includes(keyword)) score += keyword.length;
+  }
+
+  if (/^\d+[.、]/.test(line)) score += 8;
+  if (line.endsWith('要求：') || line.endsWith('要求:') || line.endsWith('评分办法：')) score -= 10;
+  if (pattern.type === 'qualification' && line.includes('营业执照')) score += 12;
+  if (pattern.type === 'case' && (line.includes('业绩') || line.includes('合同金额'))) score += 12;
+  if (pattern.type === 'service' && line.includes('响应时间')) score += 12;
+
+  return score;
 }
 
 function parseQualifications(text) {
@@ -227,7 +259,7 @@ export function generateProposalDraft(analysis) {
   return {
     title: `${analysis.enterprise.name}投标文件草稿`,
     sections: {
-      companyProfile: `${analysis.enterprise.name}具备信息化项目实施、系统集成与平台运维服务能力。本草稿仅引用企业本体中的已登记事实，需由投标负责人最终确认。`,
+      companyProfile: `${analysis.enterprise.name}具备${analysis.enterprise.capabilities.slice(0, 4).join('、')}等能力。本草稿仅引用企业本体中的已登记事实，需由投标负责人最终确认。`,
       qualificationResponse: firstQualification
         ? `我公司具备${firstQualification.name}，证书等级/类型为${firstQualification.level}，有效期至${firstQualification.validTo}。该内容用于响应：${qualificationMatch?.requirement.content ?? '资质要求'}。`
         : '需人工补充：企业本体中未登记可用于响应的资质证书。',
@@ -264,7 +296,7 @@ export function reviewProposalDraft({ analysis, draft }) {
       level: 'medium',
       location: '类似案例响应',
       message: '类似业绩证据不足，可能影响商务得分。',
-      suggestion: '补充第二个合同金额不低于500万元的类似信息化项目案例，或标注为需人工确认。'
+      suggestion: '补充满足招标金额、时间和内容要求的类似项目案例，或标注为需人工确认。'
     });
   }
 
@@ -293,44 +325,55 @@ export function reviewProposalDraft({ analysis, draft }) {
 
 function matchRequirement(enterprise, requirement) {
   if (requirement.type === 'qualification') {
-    const qualification = enterprise.qualifications.find((item) =>
-      requirement.content.includes('ISO9001') && item.name.includes('ISO9001') && item.validTo >= TODAY
-    );
+    const qualification = enterprise.qualifications.find((item) => {
+      const content = requirement.content;
+      const name = item.name;
+      const keywordMatched =
+        (content.includes('营业执照') && name.includes('营业执照')) ||
+        (content.includes('ISO9001') && name.includes('ISO9001')) ||
+        (content.includes('社保') && name.includes('社保')) ||
+        (content.includes('完税') && name.includes('完税')) ||
+        (content.includes('资质') && name.includes('资质'));
+      return keywordMatched && item.validTo >= TODAY;
+    });
     return qualification
       ? passMatch('满足', 100, `找到有效资质：${qualification.name}，有效期至${qualification.validTo}`, [qualification.name], 'ontology_query')
-      : passMatch('不满足', 0, '企业本体中未找到有效 ISO9001 资质。', [], 'ontology_query');
+      : passMatch('不满足', 0, '企业本体中未找到与该资格要求直接对应的有效资料。', [], 'ontology_query');
   }
 
   if (requirement.type === 'case') {
+    const minAmount = extractAmountRequirement(requirement.content);
+    const requiredCount = extractCountRequirement(requirement.content);
+    const requirementTokens = extractSimilarityTokens(requirement.content);
     const matchingCases = enterprise.cases.filter((item) =>
       item.year >= 2023 &&
-      item.amount >= 5000000 &&
-      (item.industry.includes('信息化') || item.tags.includes('系统集成') || item.tags.includes('平台运维'))
+      item.amount >= minAmount &&
+      hasAnyOverlap([...item.tags, item.industry, item.name], requirementTokens)
     );
 
-    if (matchingCases.length >= 2) {
+    if (matchingCases.length >= requiredCount) {
       return passMatch('满足', 100, `找到${matchingCases.length}个强匹配类似案例。`, matchingCases.map((item) => item.name), 'ontology_query + semantic_match');
     }
 
-    if (matchingCases.length === 1) {
-      return passMatch('部分满足', 60, '仅找到1个金额、时间和行业均匹配的类似案例，少于招标要求的2个。', matchingCases.map((item) => item.name), 'ontology_query + semantic_match');
+    if (matchingCases.length > 0) {
+      return passMatch('部分满足', 60, `仅找到${matchingCases.length}个金额、时间和内容均匹配的类似案例，少于招标要求的${requiredCount}个。`, matchingCases.map((item) => item.name), 'ontology_query + semantic_match');
     }
 
-    return passMatch('不满足', 0, '未找到金额不低于500万元的近三年类似信息化项目案例。', [], 'ontology_query + semantic_match');
+    return passMatch('不满足', 0, `未找到金额不低于${formatMoney(minAmount)}的近三年类似项目案例。`, [], 'ontology_query + semantic_match');
   }
 
   if (requirement.type === 'service') {
     const service = enterprise.service;
-    if (service.localOffice && service.responseHours <= 4) {
+    const requiredHours = extractHourRequirement(requirement.content);
+    if (service.localOffice && service.responseHours <= requiredHours) {
       return passMatch('满足', 100, `具备本地化服务能力，响应时间${service.responseHours}小时。`, ['本地服务能力'], 'rule_check');
     }
-    return passMatch('部分满足', 50, '本地化服务或响应时效证明不足。', [], 'rule_check');
+    return passMatch('部分满足', 50, `本地化服务或响应时效证明不足；招标要求不超过${requiredHours}小时。`, [], 'rule_check');
   }
 
   if (requirement.type === 'technical') {
-    const relevantCapabilities = enterprise.capabilities.filter((capability) =>
-      ['系统集成', '数据治理', '平台运维', '本地化售后'].includes(capability)
-    );
+    const requirementTokens = extractSimilarityTokens(requirement.content);
+    const relevantCapabilities = enterprise.capabilities.filter((capability) => hasAnyOverlap([capability], requirementTokens));
     return passMatch(
       relevantCapabilities.length >= 3 ? '满足' : '部分满足',
       relevantCapabilities.length >= 3 ? 85 : 55,
@@ -412,6 +455,60 @@ function buildRisks(matches) {
         ? '补充企业本体证据或在标书中标注需人工确认。'
         : '投标前必须补齐该项，否则可能不适合参与。'
     }));
+}
+
+function extractAmountRequirement(text) {
+  const content = String(text);
+  const wanMatch = content.match(/不低于\s*(\d+(?:\.\d+)?)\s*万/);
+  if (wanMatch) return Number(wanMatch[1]) * 10000;
+
+  const yuanMatch = content.match(/不低于\s*(\d+(?:\.\d+)?)\s*元/);
+  if (yuanMatch) return Number(yuanMatch[1]);
+
+  return 0;
+}
+
+function extractCountRequirement(text) {
+  const content = String(text);
+  const digitMatch = content.match(/不少于\s*(\d+)\s*个/);
+  if (digitMatch) return Number(digitMatch[1]);
+
+  if (content.includes('2个') || content.includes('两个')) return 2;
+  return 1;
+}
+
+function extractHourRequirement(text) {
+  const content = String(text);
+  const hourMatch = content.match(/不超过\s*(\d+(?:\.\d+)?)\s*小时/);
+  if (hourMatch) return Number(hourMatch[1]);
+  return 24;
+}
+
+function extractSimilarityTokens(text) {
+  const knownTokens = [
+    '办公终端',
+    '终端',
+    '供货',
+    '设备',
+    '华为',
+    'HarmonyOS',
+    '政府采购',
+    '信息化',
+    '系统集成',
+    '平台运维',
+    '数据治理',
+    '售后',
+    '质保',
+    '实施方案',
+    '质量保障'
+  ];
+
+  return knownTokens.filter((token) => String(text).includes(token));
+}
+
+function hasAnyOverlap(values, tokens) {
+  if (tokens.length === 0) return true;
+  return values.some((value) => tokens.some((token) => String(value).includes(token) || token.includes(String(value))));
 }
 
 function findMatch(matches, type) {

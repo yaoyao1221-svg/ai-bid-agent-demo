@@ -124,12 +124,35 @@ async function handleTenderFileUpload(event) {
   }
 
   try {
-    const content = await file.text();
+    const content = file.name.toLowerCase().endsWith('.docx')
+      ? await extractDocxText(file)
+      : await file.text();
+
+    if (!content.trim()) {
+      elements.tenderInput.value = '';
+      setFileStatus(`${file.name}：没有读取到可解析文本。如果这是扫描版 Word，需要 OCR 后再解析。`, false);
+      return;
+    }
+
     setTenderContent(content, `${file.name}：${support.reason} 请点击“开始解析”。`, true);
   } catch {
     elements.tenderInput.value = '';
-    setFileStatus(`${file.name}：文件读取失败，请确认文件编码为 UTF-8 文本。`, false);
+    setFileStatus(`${file.name}：文件读取失败，请确认文件格式有效。`, false);
   }
+}
+
+async function extractDocxText(file) {
+  if (!window.mammoth) {
+    throw new Error('mammoth not loaded');
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await window.mammoth.extractRawText({ arrayBuffer });
+  return result.value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('\n');
 }
 
 function setTenderContent(content, message, isReady) {

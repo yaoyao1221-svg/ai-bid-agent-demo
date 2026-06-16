@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI 标书精灵 Demo</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=docx-kexun-20260616" />
   </head>
   <body>
     <main class="app-shell">
@@ -79,7 +79,7 @@
             <div>
               <p class="section-label">第二步：读懂招标项目</p>
               <label for="tenderFile">上传招标文件</label>
-              <p class="hint">当前 demo 支持 .txt、.md、.json；PDF/Word 后续接入 OCR/文档解析服务。</p>
+              <p class="hint">当前 demo 支持 .txt、.md、.json、.docx；PDF 和扫描版文件后续接入 OCR。</p>
             </div>
             <div class="upload-actions">
               <input id="tenderFile" type="file" accept=".txt,.md,.json,.pdf,.doc,.docx" />
@@ -154,6 +154,7 @@
       </section>
     </main>
 
-    <script type="module" src="./src/app.js"></script>
+    <script src="https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js"></script>
+    <script type="module" src="./src/app.js?v=docx-kexun-20260616"></script>
   </body>
 </html>
