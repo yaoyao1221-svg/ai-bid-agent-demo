@@ -73,6 +73,7 @@ export function normalizeEnterpriseProfile(input) {
   const cases = parseCases(input.casesText ?? '');
   const capabilities = splitList(input.capabilitiesText ?? '');
   const responseHours = Number(input.responseHours);
+  const originalEnterprise = input.originalEnterprise ?? {};
 
   if (!name) errors.push('请填写企业名称。');
   if (qualifications.length === 0) errors.push('请至少填写一项企业资质。');
@@ -85,16 +86,29 @@ export function normalizeEnterpriseProfile(input) {
   return {
     ok: true,
     enterprise: {
+      ...pickEnterpriseExtensions(originalEnterprise),
       name,
       slogan,
       qualifications,
       cases,
       capabilities,
       service: {
+        ...(originalEnterprise.service ?? {}),
         localOffice: Boolean(input.localOffice),
         responseHours
       }
     }
+  };
+}
+
+function pickEnterpriseExtensions(enterprise) {
+  return {
+    businessLicense: enterprise.businessLicense,
+    devices: enterprise.devices ?? [],
+    contact: enterprise.contact,
+    taxProofs: enterprise.taxProofs ?? [],
+    financialStatements: enterprise.financialStatements ?? [],
+    pendingEvidence: enterprise.pendingEvidence ?? []
   };
 }
 

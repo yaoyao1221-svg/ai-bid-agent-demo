@@ -1,11 +1,17 @@
 export const kexunEnterprise = {
   name: '重庆科讯科技有限公司',
   slogan: '办公终端、信息化设备供应与本地化服务供应商',
+  businessLicense: {
+    registeredAuthority: '重庆市九龙坡区市场监督管理局',
+    address: '重庆市九龙坡区科创路65号1-8-3号',
+    status: '已从响应文件识别营业执照复印件存在；统一社会信用代码、注册资本、成立日期、经营范围待 OCR/人工补充。',
+    evidence: '响应文件正文提到由重庆市九龙坡区市场监督管理局签发的法人营业执照副本复印件。'
+  },
   qualifications: [
-    { name: '营业执照', level: '企业基础资格', validTo: '2099-12-31' },
-    { name: '重庆市社会保险参保证明', level: '社保缴纳证明', validTo: '2099-12-31' },
-    { name: '完税证明', level: '税收缴纳证明', validTo: '2099-12-31' },
-    { name: '资产负债表', level: '财务资料', validTo: '2099-12-31' }
+    { name: '营业执照', level: '企业基础资格', validTo: '2099-12-31', evidence: '已识别营业执照复印件存在，核心字段待 OCR/人工补充。' },
+    { name: '重庆市社会保险参保证明', level: '社保缴纳证明', validTo: '2099-12-31', evidence: '响应文件出现社会保险参保证明，证明期间待补充。' },
+    { name: '完税证明', level: '税收缴纳证明', validTo: '2099-12-31', evidence: '响应文件出现完税证明，税款所属期和税种待补充。' },
+    { name: '资产负债表', level: '财务资料', validTo: '2099-12-31', evidence: '响应文件出现资产负债表，资产、负债、所有者权益等数值待补充。' }
   ],
   cases: [
     {
@@ -14,6 +20,22 @@ export const kexunEnterprise = {
       amount: 54240,
       year: 2024,
       tags: ['办公终端', '华为擎云C7', 'HarmonyOS', '设备供货', '原厂质保', '政府采购']
+    }
+  ],
+  devices: [
+    {
+      name: '华为擎云 C7 第二代 11.5 寸办公终端',
+      os: 'HarmonyOS 4.2',
+      rom: '256GB',
+      ram: '8GB',
+      battery: '8800mAh',
+      resolution: '2800 x 1840',
+      screenPpi: '291 PPI',
+      rearCamera: '1300 万像素',
+      frontCamera: '800 万像素',
+      keyboard: 'KB11',
+      certifications: ['型号核准(中国)', 'CCC(中国)', '航空运输鉴定', '节能认证', '中国环保等级CQC', 'RoHS认证(中国)', '德国莱茵硬件低蓝光认证', '德国莱茵无频闪认证', '中国环境标志产品认证', '蓝牙认证及WIFI认证'],
+      evidence: '响应文件技术参数响应和认证列表。'
     }
   ],
   capabilities: [
@@ -28,8 +50,39 @@ export const kexunEnterprise = {
   ],
   service: {
     localOffice: true,
-    responseHours: 24
-  }
+    responseHours: 24,
+    warranty: '办公终端整机不低于1年原厂质保，配套键盘质保1年。',
+    evidence: '响应文件提供重庆本地地址和电话；小时级响应时效需人工确认。'
+  },
+  contact: {
+    address: '重庆市九龙坡区科创路65号1-8-3号',
+    phone: '023-68797240',
+    contactPerson: '李玉娥',
+    mobile: '13983097210'
+  },
+  taxProofs: [
+    {
+      name: '完税证明',
+      status: '已识别材料存在，税款所属期、税种、证明编号待 OCR/人工补充。',
+      evidence: '响应文件目录/正文出现完税证明。'
+    }
+  ],
+  financialStatements: [
+    {
+      name: '资产负债表',
+      status: '已识别材料存在，资产总额、负债总额、所有者权益等关键数值待 OCR/人工补充。',
+      evidence: '响应文件出现资产负债表。'
+    }
+  ],
+  pendingEvidence: [
+    '营业执照统一社会信用代码、注册资本、成立日期、经营范围',
+    '社保证明所属期间、参保人数',
+    '完税证明所属期间、税种、证明编号',
+    '资产负债表资产总额、负债总额、所有者权益',
+    '产品认证证书编号和有效期',
+    '企业更多历史项目案例',
+    '售后服务小时级响应承诺的正式证明'
+  ]
 };
 
 export const sampleTenderText = `项目名称：重庆市某单位办公终端采购项目

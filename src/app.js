@@ -21,6 +21,7 @@ const elements = {
   capabilitiesInput: document.querySelector('#capabilitiesInput'),
   localOfficeInput: document.querySelector('#localOfficeInput'),
   responseHoursInput: document.querySelector('#responseHoursInput'),
+  enterpriseRawProfile: kexunEnterprise,
   tenderFile: document.querySelector('#tenderFile'),
   tenderInput: document.querySelector('#tenderInput'),
   runAnalysis: document.querySelector('#runAnalysis'),
@@ -105,6 +106,7 @@ async function handleEnterpriseFileUpload(event) {
       setEnterpriseStatus(normalized.errors.join(' '), false);
       return;
     }
+    elements.enterpriseRawProfile = enterprise;
     renderEnterprise(normalized.enterprise);
     setEnterpriseStatus(`${file.name}：企业资料已读取，请点击“开始解析”。`, true);
   } catch {
@@ -180,11 +182,13 @@ function readEnterpriseFromForm() {
     casesText: elements.casesInput.value,
     capabilitiesText: elements.capabilitiesInput.value,
     localOffice: elements.localOfficeInput.checked,
-    responseHours: elements.responseHoursInput.value
+    responseHours: elements.responseHoursInput.value,
+    originalEnterprise: elements.enterpriseRawProfile
   });
 }
 
 function fillEnterpriseForm(enterprise) {
+  elements.enterpriseRawProfile = enterprise;
   elements.enterpriseNameInput.value = enterprise.name ?? '';
   elements.enterpriseSloganInput.value = enterprise.slogan ?? '';
   elements.qualificationsInput.value = (enterprise.qualifications ?? [])
@@ -201,11 +205,17 @@ function fillEnterpriseForm(enterprise) {
 function renderEnterprise(enterprise) {
   elements.enterpriseName.textContent = enterprise.name;
   elements.enterpriseSlogan.textContent = enterprise.slogan;
+  const deviceSummary = (enterprise.devices ?? []).map((item) => `${item.name}（${item.os ?? '系统待补'}，${item.ram ?? '内存待补'}）`).join('、');
+  const pendingSummary = (enterprise.pendingEvidence ?? []).slice(0, 4).join('；');
   elements.enterpriseFacts.innerHTML = [
     `资质：${enterprise.qualifications.map((item) => item.name).join('、')}`,
     `案例：${enterprise.cases.map((item) => item.name).join('、')}`,
     `能力：${enterprise.capabilities.join('、')}`,
-    `售后：${enterprise.service.responseHours}小时响应，本地服务 ${enterprise.service.localOffice ? '已具备' : '待确认'}`
+    `设备：${deviceSummary || '待补充设备信息'}`,
+    `证照：${enterprise.businessLicense?.status ?? '待补充营业执照信息'}`,
+    `财税：${[...(enterprise.taxProofs ?? []), ...(enterprise.financialStatements ?? [])].map((item) => `${item.name} ${item.status}`).join('；') || '待补充完税和财务信息'}`,
+    `售后：${enterprise.service.responseHours}小时响应，本地服务 ${enterprise.service.localOffice ? '已具备' : '待确认'}${enterprise.service.warranty ? `；${enterprise.service.warranty}` : ''}`,
+    `待补证据：${pendingSummary || '暂无'}`
   ].map((text) => `<div class="fact">${escapeHtml(text)}</div>`).join('');
 }
 

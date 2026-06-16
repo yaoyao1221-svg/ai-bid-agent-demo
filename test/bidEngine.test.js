@@ -141,7 +141,13 @@ test('normalizeEnterpriseProfile converts manual enterprise fields into ontology
     casesText: '重庆市教育矫治局办公终端采购响应项目|政府采购/办公终端设备|54240|2024|办公终端,华为擎云C7,政府采购',
     capabilitiesText: '办公终端设备供货,设备参数响应,政府采购响应文件编制',
     localOffice: true,
-    responseHours: '24'
+    responseHours: '24',
+    originalEnterprise: {
+      businessLicense: { status: '营业执照核心字段待 OCR 补充' },
+      devices: [{ name: '华为擎云 C7 第二代 11.5 寸办公终端' }],
+      service: { warranty: '整机不低于1年原厂质保' },
+      pendingEvidence: ['统一社会信用代码']
+    }
   });
 
   assert.equal(result.ok, true);
@@ -149,6 +155,10 @@ test('normalizeEnterpriseProfile converts manual enterprise fields into ontology
   assert.equal(result.enterprise.qualifications.length, 2);
   assert.equal(result.enterprise.cases[0].amount, 54240);
   assert.equal(result.enterprise.service.responseHours, 24);
+  assert.equal(result.enterprise.businessLicense.status, '营业执照核心字段待 OCR 补充');
+  assert.equal(result.enterprise.devices[0].name, '华为擎云 C7 第二代 11.5 寸办公终端');
+  assert.equal(result.enterprise.service.warranty, '整机不低于1年原厂质保');
+  assert.deepEqual(result.enterprise.pendingEvidence, ['统一社会信用代码']);
 });
 
 test('normalizeEnterpriseProfile rejects missing enterprise name and empty qualifications', () => {
