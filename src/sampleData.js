@@ -21,6 +21,40 @@ export const sampleEnterprise = {
   }
 };
 
+export const kexunEnterprise = {
+  name: '重庆科讯科技有限公司',
+  slogan: '办公终端、信息化设备供应与本地化服务供应商',
+  qualifications: [
+    { name: '营业执照', level: '企业基础资格', validTo: '2099-12-31' },
+    { name: '重庆市社会保险参保证明', level: '社保缴纳证明', validTo: '2099-12-31' },
+    { name: '完税证明', level: '税收缴纳证明', validTo: '2099-12-31' },
+    { name: '资产负债表', level: '财务资料', validTo: '2099-12-31' }
+  ],
+  cases: [
+    {
+      name: '重庆市教育矫治局办公终端采购响应项目',
+      industry: '政府采购/办公终端设备',
+      amount: 54240,
+      year: 2024,
+      tags: ['办公终端', '华为擎云C7', 'HarmonyOS', '设备供货', '原厂质保', '政府采购']
+    }
+  ],
+  capabilities: [
+    '办公终端设备供货',
+    '华为擎云C7设备响应',
+    'HarmonyOS办公终端配置',
+    '设备参数响应',
+    '政府采购响应文件编制',
+    '报价测算与包干报价',
+    '原厂质保服务协调',
+    '本地化电话服务支持'
+  ],
+  service: {
+    localOffice: true,
+    responseHours: 24
+  }
+};
+
 export const sampleTenderText = `项目名称：重庆市某区智慧服务平台运维项目
 
 投标人资格要求：

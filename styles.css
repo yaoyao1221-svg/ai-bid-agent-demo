@@ -126,6 +126,13 @@ h3 {
   gap: 12px;
 }
 
+.sample-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .compact {
   min-width: 78px;
   height: 34px;
