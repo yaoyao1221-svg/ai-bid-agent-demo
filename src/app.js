@@ -543,7 +543,7 @@ function renderEnhancedAnalysis(info) {
     return `<div class="node">
       <strong>\${escapeHtml(labels[item.id] || item.title)}</strong>
       <p>\${escapeHtml(item.content)}</p>
-      \${detailHtml ? `<p class="detail-line">\${detailHtml}</p>` : ''}
+      \${detailHtml ? '<p class="detail-line">' + detailHtml + '</p>' : ''}
     </div>`;
   }).join('');
 }
@@ -568,7 +568,7 @@ function extractChineseBlocks(text) {
     const cp = ch.charCodeAt(0);
     const isChinese = cp >= 0x4e00 && cp <= 0x9fff;
     const isAsciiPunct = (cp >= 0x20 && cp <= 0x7e);
-    const isCnPunct = '，。、；：？！""''（）【】《》—…·'.includes(ch);
+    const isCnPunct = "\uFF0C\u3001\u300B\uFF1B\uFF1A\uFF1F\uFF01\u201C\u201D''\uFF08\uFF09\u3010\u3011\u300A\u300B\u2014\u2026\u00B7".includes(ch);
     const isNewline = ch === '\n' || ch === '\r';
     if (isChinese || isAsciiPunct || isCnPunct) {
       current.push(ch);

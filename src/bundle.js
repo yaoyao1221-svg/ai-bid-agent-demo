@@ -1,6 +1,5 @@
-// ===== AI 标书精灵 Bundle =====
+// AI 标书精灵 Bundle
 
-// ---- sampleData.js ----
 const kexunEnterprise = {
   name: '重庆科讯科技有限公司',
   slogan: '办公终端、信息化设备供应与本地化服务供应商',
@@ -134,7 +133,6 @@ const sampleTenderText = `项目名称：重庆市某单位办公终端采购项
 未按要求提供有效资质证书或未响应实质性条款的，按无效投标处理。`;
 
 
-// ---- bidEngine.js ----
 const TODAY = '2026-06-15';
 
 const requirementPatterns = [
@@ -798,7 +796,6 @@ function extractEnhancedInfo(tenderText) {
 }
 
 
-// ---- app.js ----
 
 const elements = {
   enterpriseName: document.querySelector('#enterpriseName'),
@@ -1336,7 +1333,7 @@ function renderEnhancedAnalysis(info) {
     return `<div class="node">
       <strong>\${escapeHtml(labels[item.id] || item.title)}</strong>
       <p>\${escapeHtml(item.content)}</p>
-      \${detailHtml ? `<p class="detail-line">\${detailHtml}</p>` : ''}
+      \${detailHtml ? '<p class="detail-line">' + detailHtml + '</p>' : ''}
     </div>`;
   }).join('');
 }
@@ -1361,7 +1358,7 @@ function extractChineseBlocks(text) {
     const cp = ch.charCodeAt(0);
     const isChinese = cp >= 0x4e00 && cp <= 0x9fff;
     const isAsciiPunct = (cp >= 0x20 && cp <= 0x7e);
-    const isCnPunct = '，。、；：？！""''（）【】《》—…·'.includes(ch);
+    const isCnPunct = "\uFF0C\u3001\u300B\uFF1B\uFF1A\uFF1F\uFF01\u201C\u201D''\uFF08\uFF09\u3010\u3011\u300A\u300B\u2014\u2026\u00B7".includes(ch);
     const isNewline = ch === '\n' || ch === '\r';
     if (isChinese || isAsciiPunct || isCnPunct) {
       current.push(ch);
@@ -1389,4 +1386,3 @@ function mergeLines(text) {
     })
     .join('\n');
 }
-
